@@ -593,7 +593,7 @@ app.post('/api/ticket/send-message', async (req, res) => {
     }
 });
 
-// === API PER CHIUDERE TICKET DAL SITO WEB ===
+// === API PER CHIUDERE TICKET DAL SITO WEB - VERSIONE CORRETTA ===
 app.post('/api/ticket/close', async (req, res) => {
     try {
         const { ticketId, reason } = req.body;
@@ -618,61 +618,34 @@ app.post('/api/ticket/close', async (req, res) => {
             return res.status(400).json({ error: 'Ticket già chiuso' });
         }
 
-        // 3. Recupera le impostazioni del server per il log
-        const settingsQuery = await db.query(
-            'SELECT settings FROM guild_settings WHERE guild_id = $1',
-            [ticket.guild_id]
-        );
-
-        const settings = settingsQuery.rows[0]?.settings || {};
-        const logChannelId = settings.ticket_log_channel_id;
-
-        // 4. Chiudi il ticket nel database
-        await db.query(
-            'UPDATE tickets SET status = $1, closed_at = NOW(), close_reason = $2 WHERE id = $3',
-            ['closed', reason, ticket.id]
-        );
-
-        console.log(`✅ Ticket ${ticketId} chiuso nel database`);
-
-        // 5. Invia messaggio di chiusura su Discord
+        // 3. ✅ RICHIAMA DIRETTAMENTE LA FUNZIONE DI CHIUSURA DEL TICKETUTILS
         const channel = client.channels.cache.get(ticket.channel_id);
-        if (channel) {
-            const closeMessage = `🎫 **TICKET CHIUSO**\n\n**Staff:** ${username}\n**Motivo:** ${reason}\n\nIl ticket è stato chiuso dal pannello web.`;
-            await channel.send(closeMessage);
-            
-            // Opzionale: elimina il canale dopo qualche secondo
-            setTimeout(async () => {
-                try {
-                    await channel.delete();
-                    console.log(`✅ Canale ticket eliminato: ${channel.name}`);
-                } catch (deleteError) {
-                    console.log('⚠️ Impossibile eliminare canale, potrebbe mancare i permessi');
-                }
-            }, 5000);
+        if (!channel) {
+            return res.status(404).json({ error: 'Canale ticket non trovato' });
         }
 
-        // 6. Invia log se configurato
-        if (logChannelId) {
-            try {
-                const logChannel = client.channels.cache.get(logChannelId);
-                if (logChannel) {
-                    const logMessage = `📋 **TICKET CHIUSO - SITO WEB**\n\n**Ticket ID:** ${ticket.id}\n**Utente:** <@${ticket.user_id}>\n**Staff:** ${username}\n**Tipo:** ${ticket.ticket_type}\n**Motivo:** ${reason}\n**Data:** ${new Date().toLocaleString('it-IT')}`;
-                    await logChannel.send(logMessage);
-                }
-            } catch (logError) {
-                console.error('❌ Errore invio log:', logError);
-            }
-        }
+        console.log(`🎯 Richiamo funzione closeTicketWithReason per ticket ${ticket.id}`);
 
-        // 7. Genera transcript (richiama la stessa funzione usata dal bot)
-        try {
-            const { generateTranscript } = require('./utils/ticketUtils');
-            await generateTranscript(ticket.channel_id, ticket.guild_id, ticket.id, reason, username);
-            console.log(`✅ Transcript generato per ticket ${ticketId}`);
-        } catch (transcriptError) {
-            console.error('❌ Errore generazione transcript:', transcriptError);
-        }
+        // Crea una interaction fittizia per passare alla funzione
+        const mockInteraction = {
+            deferReply: async () => {},
+            editReply: async (content) => {
+                console.log('📢 Messaggio chiusura:', content);
+            },
+            channel: channel,
+            user: req.user,
+            guild: channel.guild,
+            fields: {
+                getTextInputValue: () => reason
+            },
+            client: client
+        };
+
+        // Importa e richiama la funzione
+        const { closeTicketWithReason } = require('./utils/ticketUtils');
+        await closeTicketWithReason(mockInteraction);
+
+        console.log(`✅ Ticket ${ticketId} chiuso con successo tramite funzione`);
 
         res.json({ 
             success: true, 
@@ -682,7 +655,7 @@ app.post('/api/ticket/close', async (req, res) => {
 
     } catch (error) {
         console.error('❌ Errore chiusura ticket da sito web:', error);
-        res.status(500).json({ error: 'Errore interno del server' });
+        res.status(500).json({ error: 'Errore interno del server: ' + error.message });
     }
 });
 
