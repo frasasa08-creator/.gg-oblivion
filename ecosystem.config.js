@@ -11,7 +11,7 @@ module.exports = {
     max_memory_restart: "500M",
     max_restarts: 10,
     min_uptime: "10s",
-    restart_delay: 3000,
+    restart_delay: 30,
     
     // 📊 Logging
     log_file: "./logs/combined.log",
