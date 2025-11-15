@@ -160,7 +160,7 @@ async function handleWelcomeSystem(member) {
             console.error('Errore creazione embed welcome:', embedError);
             // Fallback: messaggio semplice
             await welcomeChannel.send({
-                content: `🎉 **WELCOME ${member.user.username.toUpperCase()}** in Shaderss! Sei il ${member.guild.memberCount}° membro!`
+                content: `🎉 **Benvenuto ${member.user.username.toUpperCase()}** negli Oblivion! Sei il ${member.guild.memberCount}° membro!`
             });
         }
 
