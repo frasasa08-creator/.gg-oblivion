@@ -2923,7 +2923,7 @@ app.get('/', (req, res) => {
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>.gg/shaderss • Advanced Discord Bot</title>
+    <title>.gg/oblivion • Advanced Discord Bot</title>
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
     <style>
@@ -3367,7 +3367,7 @@ app.get('/', (req, res) => {
     <header class="modern-header">
         <div class="container">
             <div class="nav-container">
-                <div class="logo">.gg/shaderss</div>
+                <div class="logo">.gg/oblivion</div>
                 <nav class="nav-links">
                     <a href="/" class="nav-link">Home</a>
                     <a href="/transcripts" class="nav-link">Transcript</a>
@@ -3493,7 +3493,7 @@ app.get('/', (req, res) => {
         <div class="container">
             <div class="footer-content">
                 <div class="footer-section">
-                    <h3>.gg/shaderss</h3>
+                    <h3>.gg/oblivion</h3>
                     <p style="color: var(--text-secondary);">
                         Bot Discord avanzato per la gestione di community 
                         con strumenti professionali per moderazione e supporto.
@@ -3511,14 +3511,14 @@ app.get('/', (req, res) => {
                 <div class="footer-section">
                     <h3>Supporto</h3>
                     <ul class="footer-links">
-                        <li><a href="https://discord.gg/shaderss" target="_blank">Server Discord</a></li>
+                        <li><a href="https://discord.gg/oblivion" target="_blank">Server Discord</a></li>
                         <li><a href="/health">Status</a></li>
                         <li><a href="/api/status">API Status</a></li>
                     </ul>
                 </div>
             </div>
             <div class="footer-bottom">
-                <p>&copy; 2024 .gg/shaderss • Powered by sasa111</p>
+                <p>&copy; 2024 .gg/oblivion • Powered by sasa111</p>
             </div>
         </div>
     </footer>
