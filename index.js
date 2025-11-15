@@ -524,7 +524,7 @@ app.get('/api/status', (req, res) => {
     }
 });
 
-// === NUOVA API PER INVIO MESSAGGI CON SUPPORTO CHAT LIVE ===
+
 // === NUOVA API PER INVIO MESSAGGI CON SUPPORTO CHAT LIVE ===
 app.post('/api/ticket/send-message', async (req, res) => {
     try {
@@ -589,6 +589,99 @@ app.post('/api/ticket/send-message', async (req, res) => {
 
     } catch (error) {
         console.error('❌ Errore invio messaggio staff:', error);
+        res.status(500).json({ error: 'Errore interno del server' });
+    }
+});
+
+// === API PER CHIUDERE TICKET DAL SITO WEB ===
+app.post('/api/ticket/close', async (req, res) => {
+    try {
+        const { ticketId, reason } = req.body;
+        const username = req.user.username;
+
+        console.log(`🔒 Chiusura ticket ${ticketId} da sito web da ${username}, motivo: ${reason}`);
+
+        // 1. Trova il ticket
+        const ticketQuery = await db.query(
+            'SELECT * FROM tickets WHERE id::text = $1 OR channel_id = $1',
+            [ticketId]
+        );
+        
+        if (ticketQuery.rows.length === 0) {
+            return res.status(404).json({ error: 'Ticket non trovato' });
+        }
+
+        const ticket = ticketQuery.rows[0];
+
+        // 2. Verifica che il ticket sia aperto
+        if (ticket.status === 'closed') {
+            return res.status(400).json({ error: 'Ticket già chiuso' });
+        }
+
+        // 3. Recupera le impostazioni del server per il log
+        const settingsQuery = await db.query(
+            'SELECT settings FROM guild_settings WHERE guild_id = $1',
+            [ticket.guild_id]
+        );
+
+        const settings = settingsQuery.rows[0]?.settings || {};
+        const logChannelId = settings.ticket_log_channel_id;
+
+        // 4. Chiudi il ticket nel database
+        await db.query(
+            'UPDATE tickets SET status = $1, closed_at = NOW(), close_reason = $2 WHERE id = $3',
+            ['closed', reason, ticket.id]
+        );
+
+        console.log(`✅ Ticket ${ticketId} chiuso nel database`);
+
+        // 5. Invia messaggio di chiusura su Discord
+        const channel = client.channels.cache.get(ticket.channel_id);
+        if (channel) {
+            const closeMessage = `🎫 **TICKET CHIUSO**\n\n**Staff:** ${username}\n**Motivo:** ${reason}\n\nIl ticket è stato chiuso dal pannello web.`;
+            await channel.send(closeMessage);
+            
+            // Opzionale: elimina il canale dopo qualche secondo
+            setTimeout(async () => {
+                try {
+                    await channel.delete();
+                    console.log(`✅ Canale ticket eliminato: ${channel.name}`);
+                } catch (deleteError) {
+                    console.log('⚠️ Impossibile eliminare canale, potrebbe mancare i permessi');
+                }
+            }, 5000);
+        }
+
+        // 6. Invia log se configurato
+        if (logChannelId) {
+            try {
+                const logChannel = client.channels.cache.get(logChannelId);
+                if (logChannel) {
+                    const logMessage = `📋 **TICKET CHIUSO - SITO WEB**\n\n**Ticket ID:** ${ticket.id}\n**Utente:** <@${ticket.user_id}>\n**Staff:** ${username}\n**Tipo:** ${ticket.ticket_type}\n**Motivo:** ${reason}\n**Data:** ${new Date().toLocaleString('it-IT')}`;
+                    await logChannel.send(logMessage);
+                }
+            } catch (logError) {
+                console.error('❌ Errore invio log:', logError);
+            }
+        }
+
+        // 7. Genera transcript (richiama la stessa funzione usata dal bot)
+        try {
+            const { generateTranscript } = require('./utils/ticketUtils');
+            await generateTranscript(ticket.channel_id, ticket.guild_id, ticket.id, reason, username);
+            console.log(`✅ Transcript generato per ticket ${ticketId}`);
+        } catch (transcriptError) {
+            console.error('❌ Errore generazione transcript:', transcriptError);
+        }
+
+        res.json({ 
+            success: true, 
+            message: 'Ticket chiuso con successo',
+            ticketId: ticket.id
+        });
+
+    } catch (error) {
+        console.error('❌ Errore chiusura ticket da sito web:', error);
         res.status(500).json({ error: 'Errore interno del server' });
     }
 });
@@ -3987,7 +4080,7 @@ client.login(process.env.DISCORD_TOKEN).catch(error => {
     process.exit(1);
 });
 
-// === EVENTO PER SALVARE MESSAGGI UTENTE ===
+// === EVENTO MIGLIORATO PER SALVARE MESSAGGI UTENTE ===
 client.on('messageCreate', async (message) => {
     try {
         // Ignora messaggi di bot e messaggi non in canali ticket
@@ -4021,20 +4114,11 @@ client.on('messageCreate', async (message) => {
         }
 
         // Salva il messaggio dell'utente
-        try {
-            await db.query(
-                'INSERT INTO messages (ticket_id, username, content, is_staff, timestamp) VALUES ($1, $2, $3, $4, NOW())',
-                [ticket.id.toString(), message.author.username, message.content, false]
-            );
-            console.log(`💾 Messaggio UTENTE salvato per ticket ${ticket.id}: ${message.author.username} - "${message.content}"`);
-        } catch (columnError) {
-            // Se is_staff non esiste, salva senza
-            await db.query(
-                'INSERT INTO messages (ticket_id, username, content, timestamp) VALUES ($1, $2, $3, NOW())',
-                [ticket.id.toString(), message.author.username, message.content]
-            );
-            console.log(`💾 Messaggio UTENTE salvato (senza is_staff) per ticket ${ticket.id}: ${message.author.username}`);
-        }
+        await db.query(
+            'INSERT INTO messages (ticket_id, username, content, is_staff, timestamp) VALUES ($1, $2, $3, $4, NOW())',
+            [ticket.id.toString(), message.author.username, message.content, false]
+        );
+        console.log(`💾 Messaggio UTENTE salvato per ticket ${ticket.id}: ${message.author.username}`);
 
     } catch (error) {
         console.error('❌ Errore salvataggio messaggio utente:', error);
