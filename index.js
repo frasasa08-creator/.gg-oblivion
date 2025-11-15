@@ -2890,7 +2890,7 @@ function generateHeader(req) {
         <header class="modern-header">
             <div class="container">
                 <div class="nav-container">
-                    <div class="logo">.gg/shaderss</div>
+                    <div class="logo">.gg/oblivion</div>
                     <nav class="nav-links">
                         <a href="/" class="nav-link">Home</a>
                         <a href="/transcripts" class="nav-link">Transcript</a>
