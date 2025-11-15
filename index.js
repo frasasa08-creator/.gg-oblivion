@@ -960,6 +960,43 @@ app.get('/chat/:ticketId', checkStaffRole, async (req, res) => {
             gap: 16px;
         }
 
+        .ticket-actions-header {
+            padding: 12px 16px;
+            border-bottom: 1px solid var(--border);
+            background: rgba(237, 66, 69, 0.1);
+            border-left: 4px solid var(--error);
+            display: flex;
+            justify-content: flex-end;
+        }
+        
+        .btn-close-ticket {
+            background: var(--error);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 600;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+        
+        .btn-close-ticket:hover {
+            background: #d83639;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(237, 66, 69, 0.3);
+        }
+        
+        .btn-close-ticket:disabled {
+            background: var(--border);
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
         .message {
             display: flex;
             gap: 16px;
@@ -1222,11 +1259,18 @@ app.get('/chat/:ticketId', checkStaffRole, async (req, res) => {
             </div>
         </div>
 
-        <!-- Main Chat Area -->
+               <!-- Main Chat Area -->
         <div class="chat-area">
             <div class="chat-header">
                 <i class="fas fa-hashtag"></i>
                 Chat Live - Ticket ${ticket.id}
+            </div>
+
+            <!-- AGGIUNGI QUESTA SEZIONE QUI - BOTTONE CHIUDI TICKET -->
+            <div class="ticket-actions-header">
+                <button class="btn btn-close-ticket" id="closeTicketBtn">
+                    <i class="fas fa-lock"></i> Chiudi Ticket
+                </button>
             </div>
 
             <div class="messages-container" id="messagesContainer">
@@ -1443,6 +1487,88 @@ app.get('/chat/:ticketId', checkStaffRole, async (req, res) => {
             messagesContainer.scrollTop = messagesContainer.scrollHeight;
         }, 100);
     }
+
+   // ✅ FUNZIONE PER CHIUDERE TICKET (SOLO UNA VOLTA!)
+  async function closeTicket() {
+      const reason = prompt('Inserisci il motivo della chiusura del ticket:');
+      
+      if (!reason || reason.trim() === '') {
+          alert('Devi inserire un motivo per chiudere il ticket.');
+          return;
+      }
+  
+      if (!confirm(`Sei sicuro di voler chiudere questo ticket?\n\nMotivo: ${reason}\n\n✅ Verrà generato il transcript\n✅ Il canale verrà eliminato\n✅ L'utente riceverà una notifica`)) {
+          return;
+      }
+  
+      try {
+          const closeBtn = document.getElementById('closeTicketBtn');
+          const originalText = closeBtn.innerHTML;
+          
+          // Disabilita il bottone durante l'operazione
+          closeBtn.disabled = true;
+          closeBtn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Chiusura in corso...';
+          closeBtn.style.opacity = '0.7';
+  
+          const response = await fetch('/api/ticket/close', {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+              },
+              body: JSON.stringify({
+                  ticketId: ticketId,
+                  reason: reason.trim()
+              })
+          });
+  
+          const result = await response.json();
+  
+          if (result.success) {
+              closeBtn.innerHTML = '<i class="fas fa-check"></i> Ticket Chiuso!';
+              closeBtn.style.background = 'var(--success)';
+              
+              alert('✅ Ticket chiuso con successo! Il transcript è stato generato.');
+              
+              // Redirect alla pagina dei transcript dopo 2 secondi
+              setTimeout(() => {
+                  window.location.href = '/transcripts';
+              }, 2000);
+          } else {
+              closeBtn.innerHTML = originalText;
+              closeBtn.disabled = false;
+              closeBtn.style.opacity = '1';
+              alert('❌ Errore: ' + (result.error || 'Impossibile chiudere il ticket'));
+          }
+      } catch (error) {
+          console.error('❌ Errore chiusura ticket:', error);
+          alert('❌ Errore di connessione durante la chiusura del ticket');
+          
+          // Riabilita il bottone in caso di errore
+          const closeBtn = document.getElementById('closeTicketBtn');
+          closeBtn.disabled = false;
+          closeBtn.innerHTML = '<i class="fas fa-lock"></i> Chiudi Ticket';
+          closeBtn.style.opacity = '1';
+      }
+  }
+  
+  // ✅ CORREZIONE 10: Inizializzazione MIGLIORATA (SOLO NELLA CHAT LIVE)
+  document.addEventListener('DOMContentLoaded', function() {
+      console.log('🚀 Inizializzazione chat live per ticket:', ticketId);
+      
+      // Avvia aggiornamenti
+      startChatUpdates();
+      
+      // Focus sull'input
+      messageInput.focus();
+      
+      // Scroll iniziale in fondo
+      scrollToBottom();
+      
+      // AGGIUNGI QUESTA RIGA: Event listener per chiudere ticket
+      document.getElementById('closeTicketBtn').addEventListener('click', closeTicket);
+      
+      console.log('✅ Chat live inizializzata correttamente');
+  });
 
     // ✅ CORREZIONE 8: Aggiornamento in tempo reale MIGLIORATO
     function startChatUpdates() {
@@ -3662,24 +3788,24 @@ app.get('/', (req, res) => {
                 }
             }
     
-            // Aggiorna immediatamente e poi ogni 10 secondi
-            document.addEventListener('DOMContentLoaded', function() {
-                updateStatus();
-                setInterval(updateStatus, 10000);
-                
-                // Animazioni
-                const cards = document.querySelectorAll('.feature-card, .stat-card');
-                cards.forEach((card, index) => {
-                    card.style.opacity = '0';
-                    card.style.transform = 'translateY(20px)';
-                    
-                    setTimeout(() => {
-                        card.style.transition = 'all 0.6s ease';
-                        card.style.opacity = '1';
-                        card.style.transform = 'translateY(0)';
-                    }, index * 100);
-                });
-            });
+           // ✅ CORREZIONE 10: Inizializzazione MIGLIORATA
+          document.addEventListener('DOMContentLoaded', function() {
+              console.log('🚀 Inizializzazione chat live per ticket:', ticketId);
+              
+              // Avvia aggiornamenti
+              startChatUpdates();
+              
+              // Focus sull'input
+              messageInput.focus();
+              
+              // Scroll iniziale in fondo
+              scrollToBottom();
+              
+              // AGGIUNGI QUESTA RIGA: Event listener per chiudere ticket
+              document.getElementById('closeTicketBtn').addEventListener('click', closeTicket);
+              
+              console.log('✅ Chat live inizializzata correttamente');
+          });
       </script>
 </body>
 </html>
