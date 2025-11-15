@@ -1326,7 +1326,7 @@ app.get('/chat/:ticketId', checkStaffRole, async (req, res) => {
     </div>
 
     <script>
-        const ticketId = '${ticket.id}';
+       const channelId = String('${ticket.channel_id}');
         const channelId = '${ticket.channel_id}'; // ✅ CORRETTO: ora usa apici singoli correttamente
         let chatInterval = null;
 
