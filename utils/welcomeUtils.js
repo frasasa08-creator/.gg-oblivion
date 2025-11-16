@@ -21,7 +21,7 @@ async function createWelcomeEmbed(user, memberCount, welcomeImageUrl, embedColor
         // Crea l'embed
         const embed = new EmbedBuilder()
             .setTitle('WELCOME')
-            .setDescription(`Welcome ${user} in Shaderss, you're the ${formattedMemberCount} member!`)
+            .setDescription(`Benvenuto ${user} negli Oblivion, sei il ${formattedMemberCount} membro!`)
             .setImage(welcomeImageUrl)
             .setColor(embedColor)
             //.setTimestamp();
