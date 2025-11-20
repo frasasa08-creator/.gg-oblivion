@@ -107,13 +107,13 @@ const globalCSS = `
 // Avvia pulizia automatica all'avvio e ogni 24 ore
 async function startAutoCleanup() {
     try {
-        console.log('🧹 Avvio pulizia automatica transcript...');
-        await cleanupOldTranscripts(7);
+        console.log('🧹  transcript...');
+        await cleanupOldTranscripts(1);
         
         // Esegui pulizia ogni 24 ore
         setInterval(async () => {
             console.log('🔄 Esecuzione pulizia automatica giornaliera...');
-            await cleanupOldTranscripts(7);
+            await cleanupOldTranscripts(1);
         }, 24 * 60 * 60 * 1000); // 24 ore
         
         console.log('✅ Pulizia automatica configurata (ogni 24 ore)');
